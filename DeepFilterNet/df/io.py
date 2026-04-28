@@ -8,15 +8,32 @@ from numpy import ndarray
 from torch import Tensor
 
 try:
+    # torchaudio 2.1 – 2.8
     from torchaudio import AudioMetaData
 
     TA_RESAMPLE_SINC = "sinc_interp_hann"
     TA_RESAMPLE_KAISER = "sinc_interp_kaiser"
 except ImportError:
-    from torchaudio.backend.common import AudioMetaData
+    try:
+        # torchaudio < 2.1
+        from torchaudio.backend.common import AudioMetaData
 
-    TA_RESAMPLE_SINC = "sinc_interpolation"
-    TA_RESAMPLE_KAISER = "kaiser_window"
+        TA_RESAMPLE_SINC = "sinc_interpolation"
+        TA_RESAMPLE_KAISER = "kaiser_window"
+    except ImportError:
+        # torchaudio 2.9+ — AudioMetaData removed; define a compatible shim
+        from dataclasses import dataclass
+
+        @dataclass
+        class AudioMetaData:
+            sample_rate: int
+            num_frames: int
+            num_channels: int
+            bits_per_sample: int
+            encoding: str
+
+        TA_RESAMPLE_SINC = "sinc_interp_hann"
+        TA_RESAMPLE_KAISER = "sinc_interp_kaiser"
 
 from df.logger import warn_once
 from df.utils import download_file, get_cache_dir, get_git_root
